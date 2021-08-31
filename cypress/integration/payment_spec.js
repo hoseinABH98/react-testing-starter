@@ -1,3 +1,4 @@
+import uuid from "uuid/dist/v4";
 describe("payment", () => {
   it("user can make payment", () => {
     // login
@@ -8,13 +9,37 @@ describe("payment", () => {
     cy.findByRole("button", { name: /sign in/i }).click();
 
     // check account balance
-    // click pay button
+
+    let oldBalance;
+    cy.get("[data-test=sidenav-user-balance]").then(($balance) => (oldBalance = $balance.text()));
+
+    // click new pay button
+    cy.findByRole("button", { name: /new/i }).click();
+
     // search for users
+    cy.findByRole("textbox").type("Arely Kertzmann");
+    cy.findByText("Arely Kertzmann").click();
+
+    const paymentAmount = "5";
     // add amount and note and click pay
+    cy.findByPlaceholderText(/amount/i).type(paymentAmount);
+    const note = "some unique text for every run";
+    cy.findByPlaceholderText(/add a note/i).type(note);
+    cy.findByRole("button", { name: /pay/i }).click();
+
     // return to transactions
+    cy.findByRole("button", { name: /return to transactions/i }).click();
     // go to personal payments
+    cy.findByRole("tab", { name: /mine/i }).click();
     // click on payment
+    cy.findByText(note).click({ force: true });
     // verify payment was made
+    cy.findByText(`-$${paymentAmount}.00`).should("be.visible");
     // verify if payment amount was deducted
+    cy.get("[data-test=sidenav-user-balance]").then(($balance) => {
+      const convertedOldBalance = parseFloat(oldBalance.replace(/\$|,/g, ""));
+      const convertedNewBalance = $balance.text().replace(/\$|,/g, "");
+      expect(convertedOldBalance - convertedNewBalance).to.equal(parseFloat(paymentAmount));
+    });
   });
 });
